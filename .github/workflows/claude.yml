@@ -29,7 +29,7 @@ jobs:
           fetch-depth: 1
 
       - name: Install LiteLLM
-        run: pip install litellm[proxy]
+        run: pip install litellm[proxy] --break-system-packages
 
       - name: Start LiteLLM Proxy
         run: |
@@ -37,15 +37,13 @@ jobs:
           model_list:
             - model_name: claude-sonnet-4-6
               litellm_params:
-                model: openrouter/qwen/qwen3-2.5-coder-32b-instruct:free
-                api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+                model: gemini/gemini-2.5-flash
+                api_key: ${{ secrets.GEMINI_API_KEY }}
           EOF
           nohup litellm --config /tmp/litellm_config.yaml --port 3456 &
           sleep 5
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      
-      - name: Test proxy model alias
+
+      - name: Test proxy
         run: |
           curl -s -X POST http://localhost:3456/v1/messages \
             -H "Content-Type: application/json" \
@@ -57,11 +55,9 @@ jobs:
             }'
 
       - name: Run Claude Code
-        id: claude
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: "dummy-key"
           github_token: ${{ secrets.GH_TOKEN }}
-          show_full_output: true
         env:
           ANTHROPIC_BASE_URL: http://localhost:3456
