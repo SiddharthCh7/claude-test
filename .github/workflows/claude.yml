@@ -5,10 +5,10 @@ on:
     types: [created]
   pull_request_review_comment:
     types: [created]
-  issues:
-    types: [opened, assigned]
   pull_request_review:
     types: [submitted]
+  issues:
+    types: [opened, assigned]
 
 jobs:
   claude:
@@ -32,21 +32,50 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Install Bun (router runtime)
+      - name: Install Bun
+        run: curl -fsSL https://bun.sh/install | bash
+
+      # Create router config
+      - name: Configure Claude Code Router
+        run: |
+          mkdir -p $HOME/.claude-code-router
+          cat <<EOF > $HOME/.claude-code-router/config.json
+          {
+            "LOG": true,
+            "NON_INTERACTIVE_MODE": true,
+            "Providers": [
+              {
+                "name": "openrouter",
+                "api_base_url": "https://openrouter.ai/api/v1/chat/completions",
+                "api_key": "${{ secrets.ANTHROPIC_API_KEY }}",
+                "models": [
+                  "anthropic/claude-3.5-sonnet",
+                  "anthropic/claude-3.7-sonnet",
+                  "google/gemini-2.5-pro-preview"
+                ],
+                "transformer": {
+                  "use": ["openrouter"]
+                }
+              }
+            ],
+            "Router": {
+              "default": "openrouter,anthropic/claude-3.5-sonnet"
+            }
+          }
+          EOF
+
+      # Start router (runs on localhost:3456)
+      - name: Start Claude Code Router
+        run: |
+          nohup ~/.bun/bin/bunx @musistudio/claude-code-router start &
+          sleep 5
+
+      # Run Claude Code Action
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: "dummy-key"
         env:
-          ANTHROPIC_BASE_URL: https://openrouter.ai/api
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-          additional_permissions: |
-            actions: read
-
-          # Optional: Give a custom prompt to Claude
-          # prompt: 'Update the pull request description to include a summary of changes.'
-
-          # Optional CLI args
-          # claude_args: '--allowed-tools Bash(gh pr:*)'
+          ANTHROPIC_BASE_URL: http://localhost:3456
