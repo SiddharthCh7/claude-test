@@ -46,5 +46,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: "dummy-key"
+          github_token: ${{ secrets.GH_TOKEN }}
         env:
           ANTHROPIC_BASE_URL: http://localhost:3456
