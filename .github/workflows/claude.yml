@@ -44,6 +44,17 @@ jobs:
           sleep 5
         env:
           OPENROUTER_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Test proxy model alias
+        run: |
+          curl -s -X POST http://localhost:3456/v1/messages \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: dummy-key" \
+            -d '{
+              "model": "claude-sonnet-4-6",
+              "max_tokens": 10,
+              "messages": [{"role": "user", "content": "hi"}]
+            }'
 
       - name: Run Claude Code
         id: claude
@@ -51,5 +62,6 @@ jobs:
         with:
           anthropic_api_key: "dummy-key"
           github_token: ${{ secrets.GH_TOKEN }}
+          show_full_output: true
         env:
           ANTHROPIC_BASE_URL: http://localhost:3456
