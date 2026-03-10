@@ -1,5 +1,4 @@
 name: Claude Code
-
 on:
   issue_comment:
     types: [created]
@@ -9,7 +8,6 @@ on:
     types: [submitted]
   issues:
     types: [opened, assigned]
-
 jobs:
   claude:
     if: |
@@ -18,59 +16,31 @@ jobs:
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
       pull-requests: write
       issues: write
       id-token: write
       actions: read
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      # Install Bun (router runtime)
-      - name: Install Bun
-        run: curl -fsSL https://bun.sh/install | bash
+      - name: Install LiteLLM
+        run: pip install litellm[proxy]
 
-      # Create router config
-      - name: Configure Claude Code Router
+      - name: Start LiteLLM Proxy
         run: |
-          mkdir -p $HOME/.claude-code-router
-          cat <<EOF > $HOME/.claude-code-router/config.json
-          {
-            "LOG": true,
-            "NON_INTERACTIVE_MODE": true,
-            "Providers": [
-              {
-                "name": "openrouter",
-                "api_base_url": "https://openrouter.ai/api/v1/chat/completions",
-                "api_key": "${{ secrets.ANTHROPIC_API_KEY }}",
-                "models": [
-                  "stepfun/step-3.5-flash:free",
-                  "liquid/lfm-2.5-1.2b-thinking:free",
-                ],
-                "transformer": {
-                  "use": ["openrouter"]
-                }
-              }
-            ],
-            "Router": {
-              "default": "openrouter,stepfun/step-3.5-flash:free"
-            }
-          }
-          EOF
-
-      # Start router (runs on localhost:3456)
-      - name: Start Claude Code Router
-        run: |
-          nohup ~/.bun/bin/bunx @musistudio/claude-code-router start &
+          nohup litellm \
+            --model openrouter/qwen/qwen3-coder \
+            --port 3456 \
+            &
           sleep 5
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-      # Run Claude Code Action
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
