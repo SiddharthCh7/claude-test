@@ -33,10 +33,14 @@ jobs:
 
       - name: Start LiteLLM Proxy
         run: |
-          nohup litellm \
-            --model openrouter/qwen/qwen3-coder \
-            --port 3456 \
-            &
+          cat <<EOF > /tmp/litellm_config.yaml
+          model_list:
+            - model_name: claude-sonnet-4-6
+              litellm_params:
+                model: openrouter/qwen/qwen3-coder:free
+                api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          EOF
+          nohup litellm --config /tmp/litellm_config.yaml --port 3456 &
           sleep 5
         env:
           OPENROUTER_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
