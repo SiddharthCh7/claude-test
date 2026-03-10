@@ -37,7 +37,7 @@ jobs:
           model_list:
             - model_name: claude-sonnet-4-6
               litellm_params:
-                model: openrouter/qwen/qwen3-coder:free
+                model: openrouter/qwen/qwen3-2.5-coder-32b-instruct:free
                 api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           EOF
           nohup litellm --config /tmp/litellm_config.yaml --port 3456 &
